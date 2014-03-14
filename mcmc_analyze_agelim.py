@@ -1,5 +1,5 @@
 """
-Analyze the results of MCMC analysis.
+Analyze the results of MCMC analysis. 
 """
 
 import ekruse as ek
