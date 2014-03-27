@@ -1,0 +1,8 @@
+# start/end times that have poor data quality
+# and/or transit-y shape events in many, many light curves
+# that we need to remove for QATS runs. Must be BJD - 55000
+993.5	997.5
+949.5	951.5
+719.8	720.4
+926.5	927.0
+1011.74	1011.92
