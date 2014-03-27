@@ -17,7 +17,7 @@ from scipy import optimize as opt
 import matplotlib.ticker as plticker
 from model_funcs_public import logprob, loglikeli, initrange, light_curve_model, msage, kepler_problem, isointerp, loadisos
 
-# TODO: remove specific figure numbers? also state in comments what the figure number in the paper/supplement it corresponds to
+# TODO: remove specific figure numbers? also state in comments what the figure number in the paper/supplement it corresponds to, and make big sections for each
 
 
 # whether or not to use the adjustments for crowding (3rd light contamination)

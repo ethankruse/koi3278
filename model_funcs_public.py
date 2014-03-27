@@ -5,12 +5,12 @@ Created on Wed Mar 26 12:18:47 2014
 @author: eakruse
 """
 
-import ekruse as ek
 from glob import glob
 import numpy as np
 import sys
 from scipy import interpolate
 import numpy.polynomial.polynomial as poly
+from mandel_agol_public import mandel_agol
 
 def loadisos():
     """
@@ -157,7 +157,37 @@ def loadisos():
     isobundle = (magobs, magerr, maglam, magname, interps, limits, fehs, ages, maxmasses, wdmagfunc)
     return isobundle
 
+def getwdmodels():
+    # white dwarf cooling models
+    wdfiles = '/astro/users/eakruse/microlens/wdmodels/Table_Mass*'
+    # what's in the model and what its index is
+    wdinds = {'g':13,'r':14,'i':15,'teff':0,'logg':1,'age':26}
+    # set up the WD section
+    files = glob(wdfiles)
 
+    for ct, ii in enumerate(files):
+        iwdmods = np.loadtxt(ii)
+        # pull the mass out of the file name
+        imass = float(ii[-3:])
+        # only grab the H WDs, ignore the He ones
+        iwdmods = iwdmods[:np.diff(iwdmods[:,wdinds['teff']]).argmin()+1,:]
+        # all these have the same mass
+        imass = np.ones(len(iwdmods[:,0])) * imass
+
+        if ct == 0:
+            wdmods = iwdmods * 1.
+            mass = imass * 1.
+        else:
+            mass = np.concatenate((mass,imass))
+            wdmods = np.concatenate((wdmods,iwdmods))
+    # WD models contains the WD mass, age, and Kp magnitude
+    wdmodels = np.zeros((len(mass),3))
+    wdmodels[:,0] = mass
+    # log age like everything else
+    wdmodels[:,1] = np.log10(wdmods[:,wdinds['age']])
+    wdmodels[:,2] = wdmods[:,wdinds['teff']]
+
+    return wdmodels
 
 def initrange(p):
     """
@@ -450,7 +480,7 @@ def light_curve_model(t,p,isobundle,npert=1):
     transits = np.where((projdist < 1. + rrat) & (Z > 0.))[0]
     if len(transits) > 0:
         # limb darkened light curves for object 1
-        ldark  = ek.mandel_agol(projdist[transits],u1[0],u1[1],rrat)
+        ldark  = mandel_agol(projdist[transits],u1[0],u1[1],rrat)
         # object 1 also has microlensing effects
         F1t[transits] *= (ldark + (1. - ldark)*lensdep[transits])
 
@@ -459,7 +489,7 @@ def light_curve_model(t,p,isobundle,npert=1):
     if len(occults) > 0:
         # must be in units of the blocked star/object radius for Mandel/Agol function
         # so divide by the radius ratio
-        ldark = ek.mandel_agol(projdist[occults]/rrat,u2[0],u2[1],1./rrat)
+        ldark = mandel_agol(projdist[occults]/rrat,u2[0],u2[1],1./rrat)
         F2t[occults] *= ldark
 
     # get back to the proper shape
