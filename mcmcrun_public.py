@@ -8,15 +8,16 @@ to make sure the masses/MS ages/etc are consistent.
 
 Vectorized to run faster.
 """
-import ekruse as ek
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import emcee
 from scipy import optimize as opt
 import matplotlib.ticker as plticker
-import scipy.stats
 from model_funcs_public import logprob, loglikeli, initrange, light_curve_model, msage, kepler_problem, isointerp, loadisos
+
+# TODO: remove specific figure numbers? also state in comments what the figure number in the paper/supplement it corresponds to
 
 
 # whether or not to use the adjustments for crowding (3rd light contamination)
@@ -50,19 +51,12 @@ infile = './KOI3278_events_sap.txt'
 expanderror = 1.13
 
 # =========================================================================
+
 # load in the sections of the light curve near transits
 t,f,ferr = np.loadtxt(infile,unpack=True)
 ferr *= expanderror
+good = np.isfinite(ferr)
 
-# set up the crowding parameters for each event
-crowding = np.ones(len(equarts))
-if usecrowd:
-    for ii in np.arange(len(crowding)):
-        crowding[ii] = quartcontam[equarts[ii]-1]
-
-
-# ==================================================================== #
-# isochrone loading section
 
 # this takes forever, so if you've already loaded things once, don't bother again
 try:
@@ -71,14 +65,12 @@ except NameError:
     loaded = 1
 
     isobundle = loadisos()
-
     # unpack the model bundle
     magobs, magerr, maglam, magname, interps, limits, fehs, ages, maxmasses, wdmagfunc = isobundle
     minfeh, maxfeh, minage, maxage = limits
-
-
 print 'Done loading isochrones'
-# ============================================================================ #
+
+# ========================================================================#
 
 # current parameters for the model and starting values
 labels = ['$P$ (days)','$t_{tran}$ (days)','$e\cos\omega$','$e\sin\omega$','$b$','$M_{2,init}$','$M_2$','$M_1$','[Fe/H]','Age (Gyr)','Distance (pc)','$\sigma_{sys}$','h (pc)','$A_\lambda$ scale']
@@ -98,29 +90,25 @@ if fitlimb:
     labels.append('$u_{S1,1}$')
     labels.append('$u_{S1,2}$')
 
-
-
-
-
-good = np.isfinite(ferr)
+# set up the crowding parameters for each event
+crowding = np.ones(len(equarts))
+if usecrowd:
+    for ii in np.arange(len(crowding)):
+        crowding[ii] = quartcontam[equarts[ii]-1]
 
 # just define segments of data as any data gap more than 4 days
-edges = np.where(np.abs(t[1:] - t[:-1]) > 4.)[0] + 1
+edges = np.where(np.abs(np.diff(t)) > 4.)[0] + 1
 cuts = np.zeros(len(t)).astype(np.int)
+# increment the start of a new segment by 1
 cuts[edges] = 1
 cuts = np.cumsum(cuts)
-
-# make sure these functions are working
-print loglikeli(p,t,f,ferr,cuts,crowding,isobundle,npert=subsample,minimize=True)
-print logprob(p,t,f,ferr,cuts,crowding,subsample,isobundle,minimize=True)
-print loglikeli(p,t,f,ferr,cuts,crowding,isobundle,npert=subsample)
-print logprob(p,t,f,ferr,cuts,crowding,subsample,isobundle)
+ncuts = cuts[-1] + 1
 
 if domcmc:
     ndim = len(p)
     nwalkers = 50
     # set up the walkers in a ball near the optimal solution
-    startlocs = [p + initrange(p)*np.random.randn(ndim)*0.6 for i in np.arange(nwalkers)]
+    startlocs = [p + initrange(p)*np.random.randn(ndim) for i in np.arange(nwalkers)]
 
     # set up the MCMC code
     sampler = emcee.EnsembleSampler(nwalkers,ndim,logprob,args=(t,f,ferr,cuts,crowding,subsample,isobundle))
@@ -139,88 +127,58 @@ if domcmc:
         ofile.close()
         print iternum
 
-
-# try to find an optimal solution
+# try to find a roughly optimal solution to start the MCMC off
 if findfit:
-    #result = opt.fmin(logprob,p,args=(t,f,ferr,cuts,crowding,))
-    result2 = opt.minimize(logprob,p,args=(t,f,ferr,cuts,crowding,subsample,isobundle,True),method='TNC',options = {'maxiter':1000, 'disp':True}) # TNC works / BFGS
-    result = result2['x']
-    print logprob(result,t,f,ferr,cuts,crowding,subsample,isobundle,minimize=True)
+    # use a minimization routine to get the solution
+    result2 = opt.minimize(logprob,p,args=(t,f,ferr,cuts,crowding,subsample,isobundle,True),method='TNC',options = {'maxiter':1000, 'disp':True})
+    p = result2['x']
+    print logprob(p,t,f,ferr,cuts,crowding,subsample,isobundle,minimize=True)
     print 'Fit:'
-    print result
-    #print result2
-    resfullmod = loglikeli(result,t,f,ferr,cuts,crowding,isobundle,npert=subsample,retmodel=True)
-    plt.plot(t[good],resfullmod[good],'r',lw=2,label='New Model')
-    p = result
+    print p
 
-# some diagnostic plots
-plt.figure(2)
-plt.clf()
-plt.plot(t[good],f[good],'b',lw=2)
-
-print loglikeli(p,t,f,ferr,cuts,crowding,isobundle,npert=subsample)
-print 'Reduced chi-square: ', loglikeli(p,t,f,ferr,cuts,crowding,isobundle,npert=subsample,minimize=True)/(len(t[good]) + len(magobs) - len(p)-1)
-print logprob(p,t,f,ferr,cuts,crowding,subsample,isobundle)
-
-
-pfullmod = loglikeli(p,t,f,ferr,cuts,crowding,isobundle,retmodel=True,npert=500)
-polymodel = loglikeli(p,t,f,ferr,cuts,crowding,isobundle,retpoly=True,npert=500)
-indchis = loglikeli(p,t,f,ferr,cuts,crowding,isobundle,indchi=True,npert=500)
-#plt.plot(t[good],pfullmod[good])
-
-
-plt.plot(t[good],polymodel[good],label='Polynomial Only')
-plt.plot(t[good],pfullmod[good],label='Starting model')
-plt.legend()
-
+# get the values of the best fit parameters
 # fix limb darkening
 if len(p) == 14:
     period, ttran, ecosw, esinw, b, M2init, M2, M1, FeH, age, dist, syserr, height, alammult = p
     u20 = 0.
     u21 = 0.
-# fit limb darkening for both stars
-if len(p) == 18:
-    period, ttran, ecosw, esinw, b, M2init, M2, M1, FeH, age, dist, syserr, height, alammult, u10, u11, u20, u21 = p
 # fit limb darkening for primary star
 if len(p) == 16:
     period, ttran, ecosw, esinw, b, M2init, M2, M1, FeH, age, dist, syserr, height, alammult, u10, u11 = p
     u20 = 0.
     u21 = 0.
-
 # to get in log(age) like the interpolation needs
 age = np.log10(age * 1e9)
 
-plt.figure(3)
+print 'Reduced chi-square: ', loglikeli(p,t,f,ferr,cuts,crowding,isobundle,npert=subsample,minimize=True)/(len(t[good]) + len(magobs) - len(p)-1)
+
+# the modeled light curve
+pfullmod = loglikeli(p,t,f,ferr,cuts,crowding,isobundle,retmodel=True,npert=500)
+# the polynomial model only
+polymodel = loglikeli(p,t,f,ferr,cuts,crowding,isobundle,retpoly=True,npert=500)
+# chi-square of each event on its own
+indchis = loglikeli(p,t,f,ferr,cuts,crowding,isobundle,indchi=True,npert=500)
+
+# some diagnostic plots
+plt.figure(2)
 plt.clf()
+# plot the raw data
+plt.plot(t[good],f[good],'b',lw=2)
+plt.plot(t[good],polymodel[good],label='Polynomial only')
+plt.plot(t[good],pfullmod[good],label='Full model')
+plt.legend()
 
+# the observed model includes crowding (3rd light, assumed constant) like so:
+# modelobs = realmodel * crowding[ii] + 1. - crowding[ii]
+# thus, we invert this to get
+# realmodel = (modelobs + crowding - 1.) / crowding
+realmodel = np.ones(len(f))
+for ii in np.arange(ncuts):
+    realmodel[np.where(cuts == ii)[0]] = (((pfullmod/polymodel) + crowding[ii] - 1.) / crowding[ii])[np.where(cuts == ii)[0]]
+# rescale says how much you have to multiply each cadence of the observed model by to get the model with the third light removed
+rescale = realmodel / (pfullmod/polymodel)
 
-# the old version
-cuts = np.where(np.abs(t[1:] - t[:-1]) > 4.)[0] + 1
-cuts = np.concatenate(([0],cuts,[len(t)]))
-
-#model = model * crowding[ii] + 1. - crowding[ii]
-#model = (modelo + crowding - 1.) / crowding
-#torig[cuts[ii]:cuts[ii+1]]
-fullmodel = np.ones(len(f))
-for ii in np.arange(len(cuts)-1):
-    fullmodel[cuts[ii]:cuts[ii+1]] = (((pfullmod/polymodel) + crowding[ii] - 1.) / crowding[ii])[cuts[ii]:cuts[ii+1]]
-rescale = fullmodel / (pfullmod/polymodel)
-
-
-gs = gridspec.GridSpec(2,2,height_ratios=[2,1],wspace=0.03)
-gs.update(hspace = 0.0)
-
-ax0 = plt.subplot(gs[0])
-ax1 = plt.subplot(gs[1])
-ax2 = plt.subplot(gs[2])
-ax3 = plt.subplot(gs[3])
-
-maxresid = 0.
-miny = 5.
-maxy = 0.
-minx = np.array([10000.,10000.])
-maxx = np.array([-10000.,-10000.])
-
+# set up the arrays of occultations and pulses
 tocc = np.array([])
 focc = np.array([])
 ferrocc = np.array([])
@@ -229,121 +187,110 @@ tpul = np.array([])
 fpul = np.array([])
 ferrpul = np.array([])
 respul = np.array([])
-qualpul = np.array([])
-qualocc = np.array([])
 
-KIC = ek.koitokic(3278)
-usepdc = False
-time,flux,fluxerr,cad,quart,qual,segnum = ek.preparelc(KIC,usepdc=usepdc)
-# quality flag of each cadence
-quals = np.zeros(len(t),dtype=int)
-quarts = np.zeros(len(t))
-for ii in np.arange(len(t)):
-    best = np.abs((t[ii] - time)).argmin()
-    quals[ii] = qual[best]
-    quarts[ii] = quart[best]
-
-eventquarts = np.zeros(len(cuts)-1)
-for ii in np.arange(len(cuts)-1):
-    used = np.arange(cuts[ii],cuts[ii+1])
+# go through each event
+for ii in np.arange(ncuts):
+    used = np.where(cuts == ii)[0]
     igood = np.isfinite(ferr[used])
+    # every other event is an occultation
     if ii % 2:
+        # line up the event in time
         tocc = np.concatenate((tocc,t[used][igood]%period))
+        # adjust for crowding and divide out the polynomial trend for the raw fluxes and their errors
         focc = np.concatenate((focc,f[used][igood]*rescale[used][igood]/polymodel[used][igood]))
         ferrocc = np.concatenate((ferrocc,ferr[used][igood]*rescale[used][igood]/polymodel[used][igood]))
+        # also record the residuals
         resocc = np.concatenate((resocc,f[used][igood]-pfullmod[used][igood]))
-        qualocc = np.concatenate((qualocc,quals[used][igood]))
+    # every other event is a pulse
     else:
+        # line up the event in time
         tpul = np.concatenate((tpul,t[used][igood]%period))
+        # adjust for crowding and divide out the polynomial trend for the raw fluxes and their errors
         fpul = np.concatenate((fpul,f[used][igood]*rescale[used][igood]/polymodel[used][igood]))
         ferrpul = np.concatenate((ferrpul,ferr[used][igood]*rescale[used][igood]/polymodel[used][igood]))
+        # also record the residuals
         respul = np.concatenate((respul,f[used][igood]-pfullmod[used][igood]))
-        qualpul = np.concatenate((qualpul,quals[used][igood]))
-    eventquarts[ii] = scipy.stats.mstats.mode(quarts[used][igood])[0][0]
 
+# this number was tuned to give ~5 bins covering the duration of each event
 npts = 42
 # the subtraction is so the bins don't straddle ingress/egress
 tbinpul = np.linspace(min(tpul),max(tpul),npts) - 0.005
+tbinocc = np.linspace(min(tocc),max(tocc),npts) - 0.007
 bwidpul = tbinpul[1]-tbinpul[0]
-digits = np.digitize(tpul,tbinpul)
-# get the binned light curve
-fbinpul = np.array([np.median(fpul[digits == foo]) for foo in range(1,len(tbinpul))])
-resbinpul = np.array([np.median(respul[digits == foo]) for foo in range(1,len(tbinpul))])
-errbinpul = np.array([np.std(fpul[digits == foo])/np.sqrt(len(fpul[digits == foo])) for foo in range(1,len(tbinpul))])
+bwidocc = tbinocc[1]-tbinocc[0]
+# figure out what bin each cadence is in
+digitspul = np.digitize(tpul,tbinpul)
+digitsocc = np.digitize(tocc,tbinocc)
+# get the median flux in each bin
+fbinpul = np.array([np.median(fpul[digitspul == foo]) for foo in range(1,len(tbinpul))])
+fbinocc = np.array([np.median(focc[digitsocc == foo]) for foo in range(1,len(tbinocc))])
+# and the median residual in each bin
+resbinpul = np.array([np.median(respul[digitspul == foo]) for foo in range(1,len(tbinpul))])
+resbinocc = np.array([np.median(resocc[digitsocc == foo]) for foo in range(1,len(tbinocc))])
+# use standard error of the mean as an error bar
+errbinpul = np.array([np.std(fpul[digitspul == foo])/np.sqrt(len(fpul[digitspul == foo])) for foo in range(1,len(tbinpul))])
+errbinocc = np.array([np.std(focc[digitsocc == foo])/np.sqrt(len(focc[digitsocc == foo])) for foo in range(1,len(tbinocc))])
+# put the time stamp at the center of the bin
 tbinpul = tbinpul[1:] - bwidpul/2.
-#ax0.scatter(tbinpul,fbinpul,c='r',zorder=3,s=40)
+tbinocc = tbinocc[1:] - bwidocc/2.
+
+plt.figure(3)
+plt.clf()
+# setup to get a nice looking figure
+gs = gridspec.GridSpec(2,2,height_ratios=[2,1],wspace=0.03)
+gs.update(hspace = 0.0)
+# get the axes
+ax0 = plt.subplot(gs[0])
+ax1 = plt.subplot(gs[1])
+ax2 = plt.subplot(gs[2])
+ax3 = plt.subplot(gs[3])
+
+# plot the binned fluxes and residuals
 ax0.errorbar(tbinpul,fbinpul,yerr=errbinpul,ls='none',color='#dd0000',marker='o',mew=0,zorder=3,ms=np.sqrt(50),elinewidth=4,capthick=0,capsize=0)
 ax2.errorbar(tbinpul,resbinpul,yerr=errbinpul,ls='none',color='#dd0000',marker='o',mew=0,zorder=3,ms=np.sqrt(50),elinewidth=4,capthick=0,capsize=0)
+ax1.errorbar(tbinocc,fbinocc,yerr=errbinocc,ls='none',color='#dd0000',mew=0,marker='o',zorder=3,ms=np.sqrt(50),elinewidth=4,capthick=0,capsize=0)
+ax3.errorbar(tbinocc,resbinocc,yerr=errbinocc,ls='none',color='#dd0000',mew=0,marker='o',zorder=3,ms=np.sqrt(50),elinewidth=4,capthick=0,capsize=0)
 # just to see where the bin edges are exactly
 #for ii in np.arange(len(tbinpul)):
     #ax0.plot([tbinpul[ii]-bwidpul/2.,tbinpul[ii]-bwidpul/2.],[0,2],c='r')
-
-#ax2.scatter(tbinpul,resbinpul,c='r',zorder=3,s=40)
-#binpulmod = loglikeli(p,tbinpul,fbinpul,np.ones(len(fbinpul))*np.median(ferr),cuts,crowding,isobundle,retmodel=True,npert=500)
-#ax0.scatter(tbinpul,binpulmod,c='g',zorder=3,s=40)
-#ax2.scatter(tbinpul,fbinpul-binpulmod,c='r',zorder=3,s=40)
-
-# the subtraction is so the bins don't straddle ingress/egress
-tbinocc = np.linspace(min(tocc),max(tocc),npts) - 0.007
-bwidocc = tbinocc[1]-tbinocc[0]
-digits = np.digitize(tocc,tbinocc)
-# get the binned light curve
-fbinocc = np.array([np.median(focc[digits == foo]) for foo in range(1,len(tbinocc))])
-resbinocc = np.array([np.median(resocc[digits == foo]) for foo in range(1,len(tbinocc))])
-errbinocc = np.array([np.std(focc[digits == foo])/np.sqrt(len(focc[digits == foo])) for foo in range(1,len(tbinocc))])
-tbinocc = tbinocc[1:] - bwidocc/2.
-ax1.errorbar(tbinocc,fbinocc,yerr=errbinocc,ls='none',color='#dd0000',mew=0,marker='o',zorder=3,ms=np.sqrt(50),elinewidth=4,capthick=0,capsize=0)
-#ax1.scatter(tbinocc,fbinocc,c='r',zorder=3,s=40)
-#ax3.scatter(tbinocc,resbinocc,c='r',zorder=3,s=40)
-ax3.errorbar(tbinocc,resbinocc,yerr=errbinocc,ls='none',color='#dd0000',mew=0,marker='o',zorder=3,ms=np.sqrt(50),elinewidth=4,capthick=0,capsize=0)
-
-
-# just to see where the bin edges are exactly
 #for ii in np.arange(len(tbinocc)):
     #ax1.plot([tbinocc[ii]-bwidocc/2.,tbinocc[ii]-bwidocc/2.],[0,2],c='r')
 
-
-
-"""
-# show the bad quality flags and print their values
-ax0.scatter(tpul[qualpul != 0],fpul[qualpul != 0],s=18,zorder=4,c='r',lw=0)
-ax1.scatter(tocc[qualocc != 0],focc[qualocc != 0],s=18,zorder=4,c='r',lw=0)
-for ii in np.arange(len(tpul)):
-    if qualpul[ii] != 0:
-        ax0.text(tpul[ii],fpul[ii],str(qualpul[ii]),bbox = {'fc':'r','ec':'none','pad':0})
-for ii in np.arange(len(tocc)):
-    if qualocc[ii] != 0:
-        ax1.text(tocc[ii],focc[ii],str(qualocc[ii]),bbox = {'fc':'r','ec':'none','pad':0})
-"""
+# plot the actual data and residuals in the background
 ax0.scatter(tpul,fpul,s=3,zorder=2,c='k',lw=0)
 ax1.scatter(tocc,focc,s=3,zorder=2,c='k',lw=0)
+ax2.scatter(tpul,respul,s=3,zorder=2,c='k',lw=0)
+ax3.scatter(tocc,resocc,s=3,zorder=2,c='k',lw=0)
+# fix the x-range
 ax0.set_xlim(tpul.min(),tpul.max())
 ax1.set_xlim(tocc.min(),tocc.max())
+ax2.set_xlim(tpul.min(),tpul.max())
+ax3.set_xlim(tocc.min(),tocc.max())
+# find the common y-range to use and set it
 maxflux = np.array([fpul.max(),focc.max()]).max()
 minflux = np.array([focc.min(),fpul.min()]).min()
 ax0.set_ylim(minflux,maxflux)
 ax1.set_ylim(minflux,maxflux)
+# manual adjustment for maximum effect
 ax0.set_ylim(0.9982,1.0018)
 ax1.set_ylim(0.9982,1.0018)
+# formatting the ticks and labels for Science
 ax0.ticklabel_format(useOffset=False)
 ax1.set_yticklabels([])
 ax3.set_yticklabels([])
 ax0.set_xticklabels([])
 ax1.set_xticklabels([])
-ax0.set_ylabel('Relative flux',fontsize=24)
 ax0.tick_params(labelsize=18,width=2,length=5)
 ax1.tick_params(labelsize=18,width=2,length=5)
 ax2.tick_params(labelsize=18,width=2,length=5)
 ax3.tick_params(labelsize=18,width=2,length=5)
-
-ax2.scatter(tpul,respul,s=3,zorder=2,c='k',lw=0)
-ax3.scatter(tocc,resocc,s=3,zorder=2,c='k',lw=0)
+ax0.set_ylabel('Relative flux',fontsize=24)
 ax2.set_ylabel('Residuals',fontsize=24)
 ax2.set_xlabel('BJD - 2455000',fontsize=24)
 ax3.set_xlabel('BJD - 2455000',fontsize=24)
-ax2.set_xlim(tpul.min(),tpul.max())
-ax3.set_xlim(tocc.min(),tocc.max())
+# common y-range for the residuals panels
 maxresid = np.array([np.abs(respul).max(),np.abs(resocc).max()]).max()
+# manual fix
 maxresid = 0.0015
 ax2.set_ylim(-maxresid, maxresid)
 ax3.set_ylim(-maxresid, maxresid)
@@ -351,22 +298,25 @@ ax3.set_ylim(-maxresid, maxresid)
 # this plots the model convolved at the Kepler cadence
 goodmod = np.where(polymodel > 0)[0]
 tmod = t[goodmod]
+# get the pure model without the polynomial continuum and crowding
 pmod = pfullmod[goodmod]*rescale[goodmod]/polymodel[goodmod]
 order = np.argsort(tmod % period)
+# plot the model
 ax0.plot(tmod[order] % period,pmod[order],c='#666666',lw=4,zorder=1)
 ax1.plot(tmod[order] % period,pmod[order],c='#666666',lw=4,zorder=1)
 ax2.plot(tmod[order] % period,np.zeros(len(tmod)),c='#666666',lw=4,zorder=1)
 ax3.plot(tmod[order] % period,np.zeros(len(tmod)),c='#666666',lw=4,zorder=1)
 
-
-
-
-
+# separate cadences into pulses, occultations, or neither
 inpul = np.where(pmod > 1.00002)[0]
 inocc = np.where(pmod < 0.99996)[0]
 flat = np.where((pmod < 1.00002) & (pmod > 0.99996))[0]
 allresids = f[goodmod] - pfullmod[goodmod]
-print np.std(allresids[flat]), np.std(allresids[inocc]), np.std(allresids[inpul])
+# residuals during no event, occultations, and pulses
+# this was a test to see if spots or something could cause higher residuals
+# print np.std(allresids[flat]), np.std(allresids[inocc]), np.std(allresids[inpul])
+
+# plot residual distributions during occultations, pulses, or neither
 plt.figure(7)
 plt.clf()
 plt.hist(allresids[flat],bins=350,alpha=0.5,facecolor='k',label='Out of Events')
@@ -375,133 +325,110 @@ plt.hist(allresids[inpul],bins=30,alpha=0.5,facecolor='g',label='Pulse')
 plt.legend()
 plt.xlabel('Residuals')
 
-"""
-# this plots an absolutely perfect model (before contamination stuff)
-t2 = np.linspace(tpul.min(),tpul.max(),10000)
-modelfine = light_curve_model(t2,p,isobundle,npert=50)
-ax0.plot(t2,modelfine,c='#666666',lw=3,zorder=1)
-ax2.plot(t2,np.zeros(len(t2)),c='#666666',lw=2,zorder=1)
-
-t3 = np.linspace(tocc.min(),tocc.max(),10000)
-modelfine2 = light_curve_model(t3,p,isobundle,npert=50)
-ax1.plot(t3,modelfine2,c='#666666',lw=3,zorder=1)
-ax3.plot(t3,np.zeros(len(t3)),c='#666666',lw=2,zorder=1)
-#plt.plot(t2,light_curve_model(t2,result),'c')
-"""
-
-
 # plot the individual events
 fig4 = plt.figure(4)
 fig4.clf()
-
-fig5 = plt.figure(5,figsize=(7,5))
+fig5 = plt.figure(5)
 fig5.clf()
+# which subplot we're on
 f4ct = 1
 f5ct = 1
 
-for ii in np.arange(len(cuts)-1):
-    used = np.arange(cuts[ii],cuts[ii+1])
+for ii in np.arange(ncuts):
+    used = np.where(cuts == ii)[0]
     igood = np.isfinite(ferr[used])
+    # this is an observed occultation
     if ii % 2 and len(t[used][igood]) > 1:
-        plt.figure(4)
+        # get a new subplot and tweak some formatting
         ax = fig4.add_subplot(4,4,f4ct)
-
-        plt.scatter(t[used][igood], f[used][igood]/polymodel[used][igood],c='k',s=40,zorder=1)
-        #plt.plot(t,pfullmod/polymodel,c='r')
-        t3 = np.linspace(t[used][igood].min(),t[used][igood].max(),10000)
-        modelfine3 = light_curve_model(t3,p,isobundle,npert=50)
-        plt.plot(t3,modelfine3,c='r',lw=3,zorder=2)
-        ax.set_ylim(0.9982,1.0015)
-        ax.set_xlim(t[used][igood].min(),t[used][igood].max())
         ax.ticklabel_format(useOffset=False)
         if f4ct % 4 != 1:
             ax.set_yticklabels([])
-        ax.xaxis.set_major_locator(plticker.MaxNLocator(nbins=5,prune='both'))
-        ax.yaxis.set_major_locator(plticker.MaxNLocator(nbins=5,prune='both'))
-        ax.tick_params(labelsize=18,width=2,length=5)
         f4ct += 1
-
+    # this is an observed pulse
     elif len(t[used][igood]) > 1:
-        plt.figure(5)
+        # get a new subplot and tweak some formatting
         ax = fig5.add_subplot(4,4,f5ct)
-
-        plt.scatter(t[used][igood], f[used][igood]/polymodel[used][igood],c='k',s=40,zorder=1)
-        #plt.plot(t,pfullmod/polymodel,c='r')
-        t3 = np.linspace(t[used][igood].min(),t[used][igood].max(),10000)
-        modelfine3 = light_curve_model(t3,p,isobundle,npert=50)
-        plt.plot(t3,modelfine3,c='r',lw=3,zorder=2)
-        ax.set_ylim(0.999,1.0018)
-        ax.set_xlim(t[used][igood].min(),t[used][igood].max())
         ax.ticklabel_format(useOffset=False)
         if f5ct % 4 != 1:
             ax.set_yticklabels([])
+        f5ct += 1
+    # if this event has valid data
+    if len(t[used][igood]) > 1:
+        # plot the data
+        ax.scatter(t[used][igood], f[used][igood]/polymodel[used][igood],c='k',s=40,zorder=1)
+        # get a very fine model
+        t3 = np.linspace(t[used][igood].min(),t[used][igood].max(),500)
+        modelfine3 = light_curve_model(t3,p,isobundle,npert=50)
+        ax.plot(t3,modelfine3,c='r',lw=3,zorder=2)
+        # manually fix the y-limit to be the same in every plot
+        ax.set_ylim(0.9982,1.0015)
+        ax.set_xlim(t[used][igood].min(),t[used][igood].max())
+        # make sure the labels are all legible
         ax.xaxis.set_major_locator(plticker.MaxNLocator(nbins=5,prune='both'))
         ax.yaxis.set_major_locator(plticker.MaxNLocator(nbins=5,prune='both'))
         ax.tick_params(labelsize=18,width=2,length=5)
-        f5ct += 1
 
+# adjust the formatting
 fig4.subplots_adjust(wspace=0.03)
 fig5.subplots_adjust(wspace=0.03)
-
 fig4.text(0.5,0.05,'BJD - 2455000',ha='center',va='center',fontsize=24)
 fig5.text(0.5,0.05,'BJD - 2455000',ha='center',va='center',fontsize=24)
 fig4.text(0.07,0.5,'Relative Flux',ha='center',va='center',rotation=90,fontsize=24)
 fig5.text(0.07,0.5,'Relative Flux',ha='center',va='center',rotation=90,fontsize=24)
 
+# the rest is all to produce Figure S4
+# most of this is copied from the light_curve_model function
 
+# set up a range of WD masses
 M2s = np.linspace(0.1,1.453,1000)
 
 magobs, magerr, maglam, magname, interps, limits, fehs, ages, maxmasses, wdmagfunc = isobundle
-
+# calculate their magnitudes based on the best model
 wdage = np.log10(10.**age - 10.**(msage(M2init,FeH,isobundle)))
 wdmag = wdmagfunc(np.array([[M2,wdage]]))[0]
 
-
-
+# get the magnitudes of the primary star in the best model
 mags = isointerp(M1,FeH,age,isobundle)
 
+# pull out the stellar radius
 R1 = mags[-3]
-logg = mags[-2]
-Teff = 10.**mags[-1]
-if len(p) == 14:
-	# get the limb darkening from the fit to Sing?
-	u10 = 0.44657704  -0.00019632296 * (Teff-5500.) +   0.0069222222 * (logg-4.5) +    0.086473504 *FeH
-	u11 = 0.22779778  - 0.00012819556 * (Teff-5500.) - 0.0045844444  * (logg-4.5)  -0.050554701 *FeH
-u1 = np.array([u10,u11])
-u2 = np.array([u20,u21])
 
-
-
+# get the flux ratio between the two stars in the Kepler band
 F2F1 = 0.
 if np.isfinite(wdmag):
-	# get the Kp magnitude of the main star
-	gind = np.where(magname == 'g')[0][0]
-	rind = np.where(magname == 'r')[0][0]
-	iind = np.where(magname == 'i')[0][0]
-	if mags[gind] - mags[rind] <= 0.3:
-		kpmag1 = 0.25 * mags[gind] + 0.75 * mags[rind]
-	else:
-		kpmag1 = 0.3 * mags[gind] + 0.7 * mags[iind]
+    # get the Kp magnitude of the main star
+    gind = np.where(magname == 'g')[0][0]
+    rind = np.where(magname == 'r')[0][0]
+    iind = np.where(magname == 'i')[0][0]
+    if mags[gind] - mags[rind] <= 0.3:
+        kpmag1 = 0.25 * mags[gind] + 0.75 * mags[rind]
+    else:
+        kpmag1 = 0.3 * mags[gind] + 0.7 * mags[iind]
+    # convert from magnitudes to flux ratio
+    F2F1 = 10.**((wdmag - kpmag1)/(-2.5))
 
-F2F1 = 10.**((wdmag - kpmag1)/(-2.5))
 if not np.isfinite(F2F1):
-	F2F1 = 0.
+    F2F1 = 0.
 
 # reconvert into more useful orbital elements
 e = np.sqrt(ecosw**2. + esinw**2.)
 omega = np.arctan2(esinw,ecosw)
 a = ((period * 86400.)**2. * 6.67e-11 * (M1 + M2) * 1.988e30 / (4.*np.pi**2.))**(1./3) # in m
 a = a / (6.955e8 * R1) # in radii of the first star
-# Simple conversion
+
 inc = np.arccos(b/a)
 # Compute the size of the WD using the Nauenberg relation:
 MCh = 1.454
 # in Solar radii
 R2 = .0108*np.sqrt((MCh/M2)**(2./3.)-(M2/MCh)**(2./3.))
-R2s = .0108*np.sqrt((MCh/M2s)**(2./3.)-(M2s/MCh)**(2./3.))
 rrat = R2 / R1
-rrats = R2s / R1
 
+# get the radii of our range of WD masses
+R2s = .0108*np.sqrt((MCh/M2s)**(2./3.)-(M2s/MCh)**(2./3.))
+# radius ratio with a range of WD masses
+rrats = R2s / R1
+# mean motion
 n = 2. * np.pi / period
 
 # Sudarsky 2005 Eq. 9 to convert between center of transit and pericenter passage (tau)
@@ -513,34 +440,31 @@ tau = ttran + np.sqrt(edif)*period / (2.*np.pi) * ( e*np.sin(fcen)/(1.+e*np.cos(
 M = (n * (ttran - tau)) % (2. * np.pi)
 E = kepler_problem(M,e)
 
+
 # solve for f
 tanf2 = np.sqrt((1.+e)/(1.-e)) * np.tan(E/2.)
 fanom = (np.arctan(tanf2)*2.) % (2. * np.pi)
-
 r = a * (1. - e**2.) / (1. + e * np.cos(fanom))
-# projected distance between the stars (in the same units as a)
-projdist = r * np.sqrt(1. - np.sin(omega + fanom)**2. * np.sin(inc)**2.)
 
 # positive z means body 2 is in front (transit)
 Z = r * np.sin(omega + fanom) * np.sin(inc)
 # get the lens depth given this separation at transit
 # 1.6984903e-5 gives 2*Einstein radius^2 = 8GMZ/(c^2 R^2) with M, Z, R all
 # scaled to solar values
-
 lensdeps = 1.6984903e-5 * M2s * np.abs(Z) / R1 - rrats**2.
+# decompose into the two parts
 lensonly = 1.6984903e-5 * M2s * np.abs(Z) / R1
 tranonly =  -rrats**2.
 
+# MCMC errors on the WD mass and lens depth
 Merrs = np.array([0.579,0.681])
-Rerrs = .0108*np.sqrt((MCh/Merrs)**(2./3.)-(Merrs/MCh)**(2./3.))
-rraterrs = Rerrs / R1
-lensdeperrs = 1.6984903e-5 * Merrs * np.abs(Z) / R1 - rraterrs**2.
-#lensdeperrs2 = np.array([0.00097,0.00107])
-lensdeperrs2 = np.array([0.000954,0.001056])
+lensdeperrs2 = np.array([0.000954,0.001055])
 
+# generate Figure S4
 plt.figure(6)
 plt.clf()
 ax = plt.subplot(111)
+# show each contribution and the final result
 plt.plot(M2s,lensonly,ls='-.',c='k',lw=4,zorder=3)
 plt.plot(M2s,lensdeps,c='k',lw=4,zorder=3)
 plt.plot(M2s,tranonly,ls='--',c='k',lw=4,zorder=3)
@@ -549,14 +473,13 @@ plt.xlim(0.,M2s.max())
 
 # shaded region for our error bars
 ax.fill_between(Merrs,[ax.get_ylim()[0],ax.get_ylim()[0]],[ax.get_ylim()[1],ax.get_ylim()[1]],facecolor='#8281f7',alpha=1,edgecolor='none',zorder=1)
-#ax.fill_between([ax.get_xlim()[0],ax.get_xlim()[1]],lensdeperrs[0],lensdeperrs[1],facecolor='g',alpha=0.3)
 ax.fill_between([ax.get_xlim()[0],ax.get_xlim()[1]],lensdeperrs2[0],lensdeperrs2[1],facecolor='#8281f7',alpha=1,edgecolor='none',zorder=1)
-
+# borders around the shaded regions
 plt.plot([ax.get_xlim()[0],ax.get_xlim()[1]],[lensdeperrs2[0],lensdeperrs2[0]],lw=1,zorder=2,color='k')
 plt.plot([ax.get_xlim()[0],ax.get_xlim()[1]],[lensdeperrs2[1],lensdeperrs2[1]],lw=1,zorder=2,color='k')
 plt.plot([Merrs[0],Merrs[0]],[ax.get_ylim()[0],ax.get_ylim()[1]], zorder=2,lw=1,color='k')
 plt.plot([Merrs[1],Merrs[1]],[ax.get_ylim()[0],ax.get_ylim()[1]], zorder=2,lw=1,color='k')
-
+# some last formatting
 ax.tick_params(labelsize=16,width=2,length=5)
 plt.xlabel(r'$M_{WD} (M_\odot)$',fontsize=20)
 plt.ylabel('Magnification - 1',fontsize=20)
