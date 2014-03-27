@@ -16,6 +16,7 @@ infile = './chain_agelim_fullmetal.txt'
 infile = './chain_agelim_fullmetal_crowding_thin.txt'
 infile = './chain_agelim_fullmetal_crowding.txt'
 infile = './chain_final_isochrones.txt'
+infile = './chain_final_isochrones_thin.txt'
 #infile = './chain_agelim_fullmetal_crowding_metalprior.txt'
 #infile = './chain_mr_reduced.txt'
 
@@ -39,7 +40,7 @@ inferredparams = True
 burnin = 20000
 
 # after the burn in, only use every thin amount for speed
-nthin = 100
+nthin = 1
 
 # make the triangle plot
 maketriangle = True

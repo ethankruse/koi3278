@@ -5,12 +5,7 @@ Created on Thu Mar 27 14:12:09 2014
 @author: eakruse
 """
 
-# TODO: work on this
-# maybe put all of these (and the isochrone inputs) into one big file?
-# what we adjust the times to be
-timeoffset = 55000.
-keplerdata = '/astro/users/eakruse/cbps/thesis/data/'
-baddata = '/astro/users/eakruse/circumbinary/ignorelist.txt'
+import inputs_public as inp
 
 def loadlc(files, usepdc = False, **kwargs):
     """
@@ -118,8 +113,8 @@ def loadlc(files, usepdc = False, **kwargs):
     return time, flux, fluxerr, cadence, quarter, quality
 
 
-def preparelc(KIC,dataloc=keplerdata,fill=True,
-              badflags=(128,2048),ignorelist=baddata,
+def preparelc(KIC,dataloc=inp.keplerdata,fill=True,
+              badflags=(128,2048),ignorelist=inp.baddata,
               **kwargs):
     """
     Load Kepler light curves, then process them for QATS analysis.
@@ -172,7 +167,7 @@ def preparelc(KIC,dataloc=keplerdata,fill=True,
     KICstr = str(int(KIC))
     files = glob(dataloc + 'kplr*' + KICstr + '*llc.fits')
     time,flux,fluxerr,cad,quart,qual = loadlc(files,**kwargs)
-    time -= timeoffset
+    time -= inp.timeoffset
 
     # make sure cadences start at 0
     cad -= cad[0]

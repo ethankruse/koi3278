@@ -1,14 +1,12 @@
 """
 Take approximate cadences of transit and chop them out into a transit-only light curve.
-
-
 """
-
 import numpy as np
 from prepare_lc_public import preparelc
 
-# list of input files. Must be a list. Assumed to be in the format of QATS output,
-# so first line is skipped and all other lines contain transit index (ignore this) and cadence columns
+# list of input files. Must be a list. Assumed to be in the format of QATS
+# output, so first line is skipped and all other lines contain transit index
+# (ignore this) and cadence columns
 infiles = ['./KOI3278cen_tran.txt','./KOI3278cen_occ.txt']
 
 KIC = 3342467
@@ -18,10 +16,7 @@ usepdc = False
 region = 64
 
 # where to save this chunk of the light curve
-outtxt = './KOI3278_events.txt'
-outtxt = './KOI3278_events_test.txt'
-#outtxt = './KOI3278_occults_sap.txt'
-#outtxt = './KOI3278_transits_sap.txt'
+outtxt = './KOI3278_events_sap.txt'
 
 # ==========================================================================
 

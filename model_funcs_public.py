@@ -17,24 +17,8 @@ def loadisos():
     TODO: Describe things.
     """
 
-    # inputs
-
-    isodir='./padova/'
-    # magnitudes of the system in other filters that we want to simulate in the isochrones
-    magname = ['g','r','i','z','J','H','Ks','W1','W2']
-    magobs = np.array([15.245,14.617,14.435,14.330,13.447,13.039,12.977, 12.959, 13.020])
-    magerr = np.array([0.003, 0.004, 0.003, 0.004, 0.024, 0.022, 0.032,  0.026,  0.029])
-    # extinction measure in each filter
-    maglam = np.array([0.359, 0.248, 0.184, 0.137, 0.078, 0.050, 0.034, 0.021,  0.016])
-
-    # white dwarf cooling models
-    wdfiles = '/astro/users/eakruse/microlens/wdmodels/Table_Mass*'
-    # what's in the model and what its index is
-    wdinds = {'g':13,'r':14,'i':15,'teff':0,'logg':1,'age':26}
-
-
-
-
+    # get the inputs
+    from inputs_public import isodir, inds, magname, magobs, magerr, maglam, wdfiles, wdinds
 
     # we want these to be calculated by the isochrones too
     magname.append('Rad')
@@ -66,8 +50,7 @@ def loadisos():
             fulliso = together * 1.
         else:
             fulliso = np.concatenate((fulliso, together))
-    # what's in the isochrone and what its index is
-    inds = {'feh':0,'age':1,'M':2,'Mact':3,'lum':4,'teff':5,'logg':6,'mbol':7,'Kp':8,'g':9,'r':10,'i':11,'z':12,'D51':13,'J':14,'H':15,'Ks':16,'int_IMF1':17,'3.6':18,'4.5':19,'5.8':20,'8.0':21,'24':22,'70':23,'160':24,'W1':25,'W2':26,'W3':27,'W4':28,'int_IMF2':29,'Rad':30}
+
 
     # pull out the indices in the list we want to evaluate
     maginds = []
@@ -116,7 +99,6 @@ def loadisos():
             interps[ii,jj] = interpolate.interp1d(fulliso[small,inds['M']],fulliso[small][:,maginds],axis=0,bounds_error=False)
             maxmasses[ii,jj] = fulliso[small,inds['M']].max()
 
-
     # set up the WD section
     files = glob(wdfiles)
 
@@ -158,10 +140,8 @@ def loadisos():
     return isobundle
 
 def getwdmodels():
-    # white dwarf cooling models
-    wdfiles = '/astro/users/eakruse/microlens/wdmodels/Table_Mass*'
-    # what's in the model and what its index is
-    wdinds = {'g':13,'r':14,'i':15,'teff':0,'logg':1,'age':26}
+    from inputs_public import wdfiles, wdinds
+
     # set up the WD section
     files = glob(wdfiles)
 
