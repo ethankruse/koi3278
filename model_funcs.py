@@ -1,6 +1,9 @@
 """
 Supplementary functions needed to do the MCMC run and analysis, including loading the isochrones.
 """
+
+# TODO: switch out to a faster Mandel-Agol when needed
+
 from glob import glob
 import numpy as np
 import sys
@@ -641,6 +644,8 @@ def loglikeli(p,t,f,ferr,cuts,crowding,isobundle, minimize = False,retmodel = Fa
 
     # get the optimal polynomial model for each segment of data
     polymodel = poly.polyval(tt.reshape((-1,)),solution,tensor=False)
+    # if there are entire events that aren't seen, they will produce polymodel == 0, which can later give divide by 0 errors.
+    polymodel[polymodel == 0.] = 1.
 
     # compute the chi-square of each segment
     totchisq = np.sum(((ff - model * polymodel.reshape((ncuts,-1)))/fferr)**2.,axis=1)

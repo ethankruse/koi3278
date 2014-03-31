@@ -22,8 +22,8 @@ fitlimb = False
 # output the median and 1-sigma error results to a TeX file
 # use None if not desired
 texout = None
-texout = './MCMC_fit_final.tex'
-texout = './MCMC_fit_final_thin.tex'
+#texout = './MCMC_fit_final.tex'
+#texout = './MCMC_fit_final_thin.tex'
 
 # whether or not to evaluate all the isochrones to get inferred properties (adds a lot of time)
 inferredparams = True
@@ -61,7 +61,7 @@ walkers = walkers[good]
 loglike = loglike[good]
 
 # plot the value of each chain for each parameter as well as its log likelihood
-plt.figure(1)
+plt.figure()
 plt.clf()
 for ii in np.arange(nparams+1):
     # use 3 columns of plots
@@ -106,7 +106,7 @@ loglike = loglike[lsort]
 x = x[lsort,:]
 
 if maketriangle:
-    plt.figure(2)
+    plt.figure()
     plt.clf()
     # set unrealistic default mins and maxes
     maxes = np.zeros(len(x[0,:])) - 9e9
@@ -436,3 +436,4 @@ if texout is not None:
 
     ofile.write('\\end{tabular}\n\\end{document}')
     ofile.close()
+plt.show()

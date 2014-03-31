@@ -497,3 +497,4 @@ ax.tick_params(labelsize=16,width=2,length=5)
 plt.xlabel(r'$M_{WD} (M_\odot)$',fontsize=20)
 plt.ylabel('Magnification - 1',fontsize=20)
 # ================================================================== #
+plt.show()
