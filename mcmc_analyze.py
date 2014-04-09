@@ -403,6 +403,11 @@ if texout is not None:
         x = np.concatenate((x,lensdeps),axis=1)
         labels.append('Magnification - 1')
 
+        # add in the A_V value (0.291 is maglam for V band)
+        asubv = 0.291 * x[:,13] * (1. - np.exp(-x[:,10] * np.sin(10.2869 * np.pi / 180.) / x[:,12]))
+        asubv = asubv.reshape((len(x[:,0]),1))
+        x = np.concatenate((x,asubv),axis=1)
+        labels.append('$A_V$')
     # what are the median and 1-sigma limits of each parameter we care about
     stds = [15.87,50.,84.13]
     neg1, med, plus1 = np.percentile(x,stds,axis=0)

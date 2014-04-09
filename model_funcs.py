@@ -23,6 +23,7 @@ def loadisos():
     """
     # get the inputs
     from inputs import isodir, inds, magname, magobs, magerr, maglam, wdfiles, wdinds
+    import warnings
 
     # we want these to be calculated by the isochrones too
     magname.append('Rad')
@@ -106,7 +107,10 @@ def loadisos():
     files = glob(wdfiles)
 
     for ct, ii in enumerate(files):
-        iwdmods = np.loadtxt(ii)
+        # ignore the warnings that header lines aren't the same length
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            iwdmods = np.genfromtxt(ii,skiprows=2,invalid_raise=False)
         # pull the mass out of the file name
         imass = float(ii[-3:])
         # only grab the H WDs, ignore the He ones
@@ -144,12 +148,17 @@ def loadisos():
 
 def getwdmodels():
     from inputs import wdfiles, wdinds
+    import warnings
 
     # set up the WD section
     files = glob(wdfiles)
 
     for ct, ii in enumerate(files):
-        iwdmods = np.loadtxt(ii)
+        # ignore the warnings that header lines aren't the same length
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            iwdmods = np.genfromtxt(ii,skiprows=2,invalid_raise=False)
+
         # pull the mass out of the file name
         imass = float(ii[-3:])
         # only grab the H WDs, ignore the He ones

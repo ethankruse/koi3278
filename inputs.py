@@ -27,6 +27,6 @@ magerr = np.array([0.003, 0.004, 0.003, 0.004, 0.024, 0.022, 0.032,  0.026,  0.0
 maglam = np.array([0.359, 0.248, 0.184, 0.137, 0.078, 0.050, 0.034, 0.021,  0.016])
 
 # white dwarf cooling models
-wdfiles = '/astro/users/eakruse/microlens/wdmodels/Table_Mass*'
+wdfiles = './wdmodels/Table_Mass*'
 # what's in the model and what its index is
 wdinds = {'g':13,'r':14,'i':15,'teff':0,'logg':1,'age':26}
