@@ -1,0 +1,5 @@
+Run ./bergeron_wdmodels_wget.sh to download the WD cooling models from
+Pierre Bergeron's website
+(http://www.astro.umontreal.ca/~bergeron/CoolingModels). We thank him
+for making these models publicly available. Contact Ethan Kruse for
+the raw model files if the links have broken.

@@ -1,0 +1,2 @@
+Run ./kepler_wget.sh to download the light curve files for KOI-3278
+(quarters 1-17) from the Mikulski Archive for Space Telescopes (MAST).
