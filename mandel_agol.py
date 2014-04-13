@@ -1,3 +1,7 @@
+"""
+Mandel & Agol Python routine. Written by Jason Eastman.
+"""
+
 from numpy import size,zeros,where,arccos,sqrt,pi,log
 
 # Computes Hasting's polynomial approximation for the complete
@@ -52,8 +56,8 @@ def ellpic_bulirsch(n,k):
 #   Python translation of IDL code.
 #   This routine computes the lightcurve for occultation of a
 #   quadratically limb-darkened source without microlensing.  Please
-#   cite Mandel & Agol (2002) and Eastman & Agol (2008) if you make use
-#   of this routine in your research.  Please report errors or bugs to
+#   cite Mandel & Agol (2002) and Eastman, Gaudi, & Agol (2013) if you make
+#   use of this routine in your research.  Please report errors or bugs to
 #   jdeast@astronomy.ohio-state.edu
 def mandel_agol(z,u1,u2,p0):
     """
