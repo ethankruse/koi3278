@@ -6,10 +6,10 @@ modeling and the key figures, notably Figure 2 of the main text.
 If you make use of this code please cite our work:
 Kruse & Agol, Science 2014 (add real ref when available)
 
-We have also included the Padova isochrones (padova/) as well as wget
-scripts to download the Kepler light curves (to lightcurve/) and white
-dwarf models from Pierre Bergeron (wdmodels/). See the README files
-within the subdirectories for more information.
+We have also included the PARSEC isochrones used (PARSECv1.1/) as well
+as wget scripts to download the Kepler light curves (to lightcurve/)
+and white dwarf models from Pierre Bergeron (wdmodels/). See the
+README files within the subdirectories for more information.
 
 Everything can be run using python assuming the following packages are
 installed (most are defaults in every python installation):

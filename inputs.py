@@ -15,8 +15,8 @@ keplerdata = './lightcurve/'
 # file with a list of times to ignore
 baddata = './ignorelist.txt'
 
-# directory containing the padova isochrones
-isodir = './padova/'
+# directory containing the PARSEC isochrones used
+isodir = './PARSECv1.1/'
 
 # what's in the isochrone and what its column index is
 inds = {'feh': 0, 'age': 1, 'M': 2, 'Mact': 3, 'lum': 4, 'teff': 5, 'logg': 6,
