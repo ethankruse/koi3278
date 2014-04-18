@@ -1,10 +1,10 @@
 This contains a stand-alone version of the code used to analyze the
-self-lensing binary system KOI-3278, as it appears in Science (add
-ref). It will reproduce the bulk of our analysis, including the MCMC
-modeling and the key figures, notably Figure 2 of the main text.
+self-lensing binary system KOI-3278, as it appears in Science. It will
+reproduce the bulk of our analysis, including the MCMC modeling and
+the key figures, notably Figure 2 of the main text.
 
 If you make use of this code please cite our work:
-Kruse & Agol, Science 2014 (add real ref when available)
+Kruse & Agol, Science 344, 275 (2014).
 
 We have also included the PARSEC isochrones used (PARSECv1.1/) as well
 as wget scripts to download the Kepler light curves (to lightcurve/)
