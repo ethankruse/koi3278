@@ -127,7 +127,6 @@ def loadisos():
         # ignore the warnings that header lines aren't the same length
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            print(ii)
             iwdmods = np.genfromtxt(ii, skip_header=2, invalid_raise=False)
         # pull the mass out of the file name
         imass = float(ii[-3:])
