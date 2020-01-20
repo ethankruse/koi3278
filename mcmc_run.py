@@ -73,7 +73,7 @@ except NameError:
     (magobs, magerr, maglam, magname, interps, limits, fehs, ages,
      maxmasses, wdmagfunc) = isobundle
     minfeh, maxfeh, minage, maxage = limits
-print 'Done loading isochrones'
+print('Done loading isochrones')
 
 # ========================================================================== #
 
@@ -127,10 +127,10 @@ if findfit:
                            method='TNC', options = {'maxiter': 1000,
                                                     'disp': True})
     p = result2['x']
-    print logprob(p, t, f, ferr, cuts, crowding, subsample, isobundle,
-                  minimize=True)
-    print 'Minimization Fit:'
-    print p
+    print(logprob(p, t, f, ferr, cuts, crowding, subsample, isobundle,
+                  minimize=True))
+    print('Minimization Fit:')
+    print(p)
 
 # run the full MCMC model
 if domcmc:
@@ -162,7 +162,7 @@ if domcmc:
                                                     for x in position[k]])))
         ofile.close()
         # keep track of how far along thing are
-        print iternum
+        print(iternum)
 
 # get the values of the best fit parameters
 # fix limb darkening
@@ -180,9 +180,9 @@ if len(p) == 16:
 # to get in log(age) like the interpolation needs
 age = np.log10(age * 1e9)
 
-print 'Reduced chi-square: ',  (loglikeli(
+print('Reduced chi-square: ',  (loglikeli(
     p, t, f, ferr, cuts, crowding, isobundle, npert=subsample, minimize=True) /
-    (len(t[good]) + len(magobs) - len(p)-1))
+    (len(t[good]) + len(magobs) - len(p)-1)))
 
 # the modeled light curve
 pfullmod = loglikeli(p, t, f, ferr, cuts, crowding, isobundle,

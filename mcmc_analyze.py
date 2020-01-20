@@ -38,7 +38,7 @@ if fitlimb:
 nparams = len(labels)
 
 x = np.loadtxt(infile)
-print 'File loaded'
+print('File loaded')
 
 # split the metadata from the chain results
 iteration = x[:, 0]
@@ -212,8 +212,8 @@ if maketriangle:
 best = x[0, :]
 meds = np.median(x, axis=0)
 devs = np.std(x, axis=0)
-print 'Best model parameters: '
-print best
+print('Best model parameters: ')
+print(best)
 # ========================================================================== #
 
 # load the isochrones if we need them

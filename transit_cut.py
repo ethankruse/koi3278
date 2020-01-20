@@ -46,7 +46,7 @@ cads = cads.astype(int)
 # will have to handle errors (e.g. transits near the beginning or end
 # of observation) before generalizing this for use with other systems
 if lorig != len(cads):
-    print 'Warning! No longer equal number of cadences per event!'
+    print('Warning! No longer equal number of cadences per event!')
 
 # save the selected portion of the light curve
 outarr = np.zeros((len(cads), 3))
