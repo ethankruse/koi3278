@@ -37,6 +37,6 @@ if len(files) == 0:
     dload += 1
 
 if dload:
-    print 'Downloaded necessary data.'
+    print('Downloaded necessary data.')
 else:
-    print 'All data already downloaded. Continuing.'
+    print('All data already downloaded. Continuing.')

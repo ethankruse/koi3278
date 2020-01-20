@@ -47,10 +47,10 @@ def loadisos():
     wiseisos.sort()
 
     if len(sdssisos) != len(wiseisos):
-        print 'Error! Mismatched isochrones.'
+        print('Error! Mismatched isochrones.')
         sys.exit(1)
     if len(sdssisos) == 0:
-        print 'Cannot find isochrones!'
+        print('Cannot find isochrones!')
 
     # load and concatenate the isochrones
     for ii in np.arange(len(sdssisos)):
@@ -121,13 +121,13 @@ def loadisos():
     # set up the WD section
     files = glob(wdfiles)
     if len(files) == 0:
-        print 'Warning! White Dwarf models not found!'
+        print('Warning! White Dwarf models not found!')
 
     for ct, ii in enumerate(files):
         # ignore the warnings that header lines aren't the same length
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            iwdmods = np.genfromtxt(ii, skiprows=2, invalid_raise=False)
+            iwdmods = np.genfromtxt(ii, skip_header=2, invalid_raise=False)
         # pull the mass out of the file name
         imass = float(ii[-3:])
         # only grab the H WDs, ignore the He ones
@@ -176,12 +176,12 @@ def getwdmodels():
     # set up the WD section
     files = glob(wdfiles)
     if len(files) == 0:
-        print 'Warning! White Dwarf models not found!'
+        print('Warning! White Dwarf models not found!')
     for ct, ii in enumerate(files):
         # ignore the warnings that header lines aren't the same length
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            iwdmods = np.genfromtxt(ii, skiprows=2, invalid_raise=False)
+            iwdmods = np.genfromtxt(ii, skip_header=2, invalid_raise=False)
 
         # pull the mass out of the file name
         imass = float(ii[-3:])
